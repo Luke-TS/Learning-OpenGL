@@ -155,9 +155,8 @@ int main(void)
     glBindVertexArray(VAO_0);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
 
     // set attribute pointers
     // ===========================================
@@ -170,7 +169,20 @@ int main(void)
     //glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    Shader shader("vertex.glsl", "fragment.glsl");
+    unsigned int lightVAO;
+    glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO); // no need to re-copy
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    //glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+
+    Shader obj_shader("vertex.glsl", "obj_fragment.glsl");
+    Shader light_shader("vertex.glsl", "light_fragment.glsl");
     Texture texture("wall.jpg");
 
     std::random_device rd;
@@ -188,7 +200,7 @@ int main(void)
                        glm::vec3(0.0f, 0.0f, 0.0f),  // target position
                        glm::vec3(0.0f, 1.0f, 0.0f)); // look up position
 
-    camera.EnableFPSMode();
+    //camera.EnableFPSMode();
 
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -201,39 +213,42 @@ int main(void)
         // state-using command
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader.use();
+        obj_shader.use();
         glBindVertexArray(VAO_0);
         texture.bind();
         
         float timeValue = glfwGetTime();
         // fragment shader uniforms
-        float greenValue = (sin(timeValue* 1.08)/ 4.0f) + 0.25f;
-        float redValue = (sin(timeValue* 1.23)/ 4.0f) + 0.25f;
-        float blueValue = (sin(timeValue* 1.35) / 4.0f) + 0.25f;
-        shader.setFloat("greenValue", greenValue);
-        shader.setFloat("redValue", redValue);
-        shader.setFloat("blueValue", blueValue);
+        obj_shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        obj_shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 
-        for(unsigned int i = 0; i < 10; i++)
-        {
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, glm::radians(-55.0f) * timeValue, glm::vec3(0.4f, rand_axes[i], 1.0f)); 
-            model = glm::rotate(model, glm::radians(-55.0f) * timeValue, glm::vec3(rand_axes[i], 0.7f, 0.3f)); 
-            float angle = 20.0f * i; 
-            shader.setMat4("model", glm::value_ptr(model));
-
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        // vertex shader uniforms
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        obj_shader.setMat4("model", glm::value_ptr(model));
 
         glm::mat4 view = camera.GetViewMatrix();
-        shader.setMat4("view", glm::value_ptr(view));
+        obj_shader.setMat4("view", glm::value_ptr(view));
 
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        shader.setMat4("projection", glm::value_ptr(projection));
+        obj_shader.setMat4("projection", glm::value_ptr(projection));
 
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); // use EBO
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // render lights
+        light_shader.use();
+        glBindVertexArray(lightVAO);
+
+        // reuse previous vertex shader uniforms w/ new position
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 1.5f, -2.0f));
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+        light_shader.setMat4("model", glm::value_ptr(model));
+        light_shader.setMat4("view", glm::value_ptr(view));
+        light_shader.setMat4("projection", glm::value_ptr(projection));
+
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // check events and swap buffers
