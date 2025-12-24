@@ -7,6 +7,7 @@
 // matrix library for OpenGL
 #include <bits/types/struct_timeval.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -185,6 +186,20 @@ int main(void)
         rand_axes[i] = dis01(gen);
     }
 
+    // manually calculating camera space axes
+    // these can be used to create vec4 lookAt matrix
+    glm::vec3 camPos    = glm::vec3(0.0, 0.0, 3.0);
+    glm::vec3 camTarget = glm::vec3(0.0,0.0,0.0);
+    glm::vec3 camDir    = glm::normalize(camPos - camTarget);
+    glm::vec3 worldUp   = glm::vec3(0.0, 1.0, 0.0);
+    glm::vec3 camRight  = glm::normalize(glm::cross(worldUp, camDir));
+    glm::vec3 camUp     = (glm::cross(camDir, camRight));
+
+    // OR create LookAt view matrix with glm
+    glm::mat4 view;
+    view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),  // cam position
+                       glm::vec3(0.0f, 0.0f, 0.0f),  // target position
+                       glm::vec3(0.0f, 1.0f, 0.0f)); // look up position
     // render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -221,9 +236,11 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        glm::mat4 view = glm::mat4(1.0f);
-        // note that we're translating the scene in the reverse direction of where we want to move
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f)); 
+        const float radius = 13.0f;
+        float camX = sin(timeValue) * radius;
+        float camZ = cos(timeValue) * radius;
+        glm::mat4 view;
+        view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, -5.0), glm::vec3(0.0, 1.0, 0.0)); 
         shader.setMat4("view", glm::value_ptr(view));
 
         glm::mat4 projection;
