@@ -30,6 +30,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
+// global camera status
+glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
+
 void processInput(GLFWwindow *window, struct InputFlags *flags) {
     // escape to close
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -43,6 +48,16 @@ void processInput(GLFWwindow *window, struct InputFlags *flags) {
     }
 
     backspace_was_down = backspace_is_down; // update state
+   
+    const float cameraSpeed = 0.05f; // adjust accordingly
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
 float vertices[] = {
@@ -186,20 +201,13 @@ int main(void)
         rand_axes[i] = dis01(gen);
     }
 
-    // manually calculating camera space axes
-    // these can be used to create vec4 lookAt matrix
-    glm::vec3 camPos    = glm::vec3(0.0, 0.0, 3.0);
-    glm::vec3 camTarget = glm::vec3(0.0,0.0,0.0);
-    glm::vec3 camDir    = glm::normalize(camPos - camTarget);
-    glm::vec3 worldUp   = glm::vec3(0.0, 1.0, 0.0);
-    glm::vec3 camRight  = glm::normalize(glm::cross(worldUp, camDir));
-    glm::vec3 camUp     = (glm::cross(camDir, camRight));
-
     // OR create LookAt view matrix with glm
     glm::mat4 view;
     view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),  // cam position
                        glm::vec3(0.0f, 0.0f, 0.0f),  // target position
                        glm::vec3(0.0f, 1.0f, 0.0f)); // look up position
+
+
     // render loop
     while (!glfwWindowShouldClose(window))
     {
@@ -236,11 +244,8 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        const float radius = 13.0f;
-        float camX = sin(timeValue) * radius;
-        float camZ = cos(timeValue) * radius;
         glm::mat4 view;
-        view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, -5.0), glm::vec3(0.0, 1.0, 0.0)); 
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         shader.setMat4("view", glm::value_ptr(view));
 
         glm::mat4 projection;
