@@ -13,6 +13,12 @@ enum Camera_Movement {
     RIGHT
 };
 
+// Applies constrains on how camera position and user input is handled
+enum Camera_Mode {
+    NORMAL, // "flying" mode
+    FPS,    // camera is fixed to plane in FPS fashion
+};
+
 // Default camera values
 const float YAW         = -90.0f;
 const float PITCH       =  0.0f;
@@ -34,9 +40,13 @@ public:
     float Yaw;
     float Pitch;
     // camera options
-    float MovementSpeed;
-    float MouseSensitivity;
-    float Zoom;
+    float       MovementSpeed;
+    float       MouseSensitivity;
+    float       Zoom;
+    // camera modes
+    Camera_Mode Mode;
+    glm::vec3 plane_normal = glm::vec3(0.0f, 0.0f, 1.0f); // fps plane surface normal
+    float     plane_shift  = -1.0f;                       // fps plane shift (positive -> direction of normal)
 
     // constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
@@ -44,6 +54,7 @@ public:
            float yaw = YAW,
            float pitch = PITCH) : 
         Front(glm::vec3(0.0f, 0.0f, -1.0f)), 
+        Mode(NORMAL),
         MovementSpeed(SPEED), 
         MouseSensitivity(SENSITIVITY), 
         Zoom(ZOOM)
@@ -54,11 +65,13 @@ public:
         Pitch = pitch;
         updateCameraVectors();
     }
+
     // constructor with scalar values
     Camera(float posX, float posY, float posZ,
            float upX, float upY, float upZ,
            float yaw, float pitch) : 
         Front(glm::vec3(0.0f, 0.0f, -1.0f)), 
+        Mode(NORMAL),
         MovementSpeed(SPEED), 
         MouseSensitivity(SENSITIVITY), 
         Zoom(ZOOM)
@@ -68,6 +81,16 @@ public:
         Yaw = yaw;
         Pitch = pitch;
         updateCameraVectors();
+    }
+
+    void EnableFPSMode(float posY = -1.0f) {
+        Mode = FPS;
+        plane_shift = posY;
+        Position.y = plane_shift + 1.0f;
+    }
+
+    void DisableFPSMode() {
+        Mode = NORMAL;
     }
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
@@ -80,14 +103,31 @@ public:
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
-        if (direction == FORWARD)
-            Position += Front * velocity;
-        if (direction == BACKWARD)
-            Position -= Front * velocity;
-        if (direction == LEFT)
-            Position -= Right * velocity;
-        if (direction == RIGHT)
-            Position += Right * velocity;
+
+        switch (Mode) {
+            case NORMAL:
+                if (direction == FORWARD)
+                    Position += Front * velocity;
+                if (direction == BACKWARD)
+                    Position -= Front * velocity;
+                if (direction == LEFT)
+                    Position -= Right * velocity;
+                if (direction == RIGHT)
+                    Position += Right * velocity;
+                break;
+            case FPS:
+                glm::vec3 PlaneFront = glm::normalize(glm::vec3(Front.x, 0.0f, Front.z));
+                glm::vec3 PlaneRight = glm::normalize(glm::vec3(Right.x, 0.0f, Right.z));
+                if (direction == FORWARD)
+                    Position += PlaneFront * velocity;
+                if (direction == BACKWARD)
+                    Position -= PlaneFront * velocity;
+                if (direction == LEFT)
+                    Position -= PlaneRight * velocity;
+                if (direction == RIGHT)
+                    Position += PlaneRight * velocity;
+                break;
+        }
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
