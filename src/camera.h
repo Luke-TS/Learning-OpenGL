@@ -10,7 +10,8 @@ enum Camera_Movement {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
 };
 
 // Applies constrains on how camera position and user input is handled
@@ -114,6 +115,8 @@ public:
                     Position -= Right * velocity;
                 if (direction == RIGHT)
                     Position += Right * velocity;
+                if (direction == UP)
+                    Position += Up * velocity;
                 break;
             case FPS:
                 glm::vec3 PlaneFront = glm::normalize(glm::vec3(Front.x, 0.0f, Front.z));
@@ -126,6 +129,7 @@ public:
                     Position -= PlaneRight * velocity;
                 if (direction == RIGHT)
                     Position += PlaneRight * velocity;
+                // up input is ignored
                 break;
         }
     }

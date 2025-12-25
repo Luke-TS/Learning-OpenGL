@@ -16,4 +16,5 @@ void main()
     // fragment shader data
     FragPos = vec3(model * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(model))) * aNorm;
+    //Normal = aNorm;
 }

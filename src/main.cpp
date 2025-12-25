@@ -201,6 +201,8 @@ int main(void)
         // vertex shader transformation matrices
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, timeValue/2.0f, glm::normalize(glm::vec3(x/3.0f, 1.0f, z/3.0f)));
+        model = glm::scale(model, glm::vec3(1.0f, 3.0f, 1.0f));
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -214,6 +216,7 @@ int main(void)
         obj_shader.setVec3("lightPos", glm::value_ptr(lightPos));
         obj_shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         obj_shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+        obj_shader.setVec3("viewPos", glm::value_ptr(camera.Position));
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -295,4 +298,6 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.ProcessKeyboard(UP, deltaTime);
 }
