@@ -16,6 +16,8 @@
 #include <iostream>
 #include <random>
 
+#include "material.h"
+#include "light.h"
 #include "shader.h"
 #include "texture.h"
 #include "camera.h"
@@ -38,7 +40,7 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
-float vertices[] = {
+float cube_vertices[] = {
     // vertices           surface normals
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
      0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
@@ -83,18 +85,14 @@ float vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 };
 
-glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f), 
-    glm::vec3( 2.0f,  5.0f, -15.0f), 
-    glm::vec3(-1.5f, 2.2f, -2.5f),  
-    glm::vec3(-3.8f, 2.0f, -12.3f),  
-    glm::vec3( 2.4f, 0.4f, -3.5f),  
-    glm::vec3(-1.7f,  3.0f, -7.5f),  
-    glm::vec3( 1.3f, 2.0f, -2.5f),  
-    glm::vec3( 1.5f,  2.0f, -2.5f), 
-    glm::vec3( 1.5f,  0.2f, -1.5f), 
-    glm::vec3(-1.3f,  1.0f, -1.5f)  
-};
+glm::vec3 ambient = glm::vec3(0.24725f, 0.1995f,	0.0745f);
+glm::vec3 diffuse = glm::vec3(0.75164f, 0.60648f, 0.22648);
+glm::vec3 specular = glm::vec3(0.628281f, 0.555802f, 0.366065f);
+
+Material cube_material{ambient, diffuse, specular, 0.4f};
+Light light{glm::vec3(0.2f, 0.2f, 0.2f),
+                     glm::vec3(0.5f, 0.5f, 0.5f),
+                     glm::vec3(1.0f,1.0f,1.0f)};
 
 int main(void)
 {
@@ -154,7 +152,7 @@ int main(void)
     // copy data
     glBindVertexArray(VAO_0);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
     // vertex layout
     // ===========================================
@@ -192,8 +190,17 @@ int main(void)
         float radius = 3.0f;
         float x = cos(timeValue) * radius;
         float z = sin(timeValue) * radius;
-        float y = sin(timeValue * 3) * 1.5f;
-        glm::vec3 lightPos = glm::vec3(x, y + 1.5f, z);
+        float y = sin(timeValue * 1.5f) * 1.5f;
+        glm::vec3 lightPos = glm::vec3(2.0, y + 1.5f, -2.5f);
+
+        glm::vec3 lightColor;
+        lightColor.x = sin(glfwGetTime() * 2.0f)/2.0f + 0.5f;
+        lightColor.y = sin(glfwGetTime() * 0.7f)/2.0f + 0.5f;
+        lightColor.z = sin(glfwGetTime() * 1.3f)/2.0f + 0.5f;
+
+        light.diffuse  = lightColor   * glm::vec3(0.5f); 
+        light.diffuse = glm::vec3(0.0f);
+        light.ambient = lightColor; 
 
         obj_shader.use();
         glBindVertexArray(VAO_0);
@@ -214,9 +221,9 @@ int main(void)
         
         // fragment shader uniforms
         obj_shader.setVec3("lightPos", glm::value_ptr(lightPos));
-        obj_shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        obj_shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
         obj_shader.setVec3("viewPos", glm::value_ptr(camera.Position));
+        light.use(obj_shader);
+        cube_material.use(obj_shader);
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -233,6 +240,9 @@ int main(void)
         light_shader.setMat4("model", glm::value_ptr(light_model));
         light_shader.setMat4("view", glm::value_ptr(view));
         light_shader.setMat4("projection", glm::value_ptr(projection));
+
+        // light fragment shader
+        light_shader.setVec3("lightColor", glm::value_ptr(lightColor));
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
