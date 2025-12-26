@@ -9,9 +9,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm   CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(assimp REQUIRED)
 
 add_library(glad glad/src/gl.c)
-target_include_directories(glad PUBLIC glad/include)
+target_include_directories(glad PUBLIC glad/include PRIVATE assimp::assimp)
 
 add_executable(gl_example
     src/main.cpp
