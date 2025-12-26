@@ -30,8 +30,8 @@ void processInput(GLFWwindow *window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 800;
+const unsigned int SCR_WIDTH = 1200;
+const unsigned int SCR_HEIGHT = 1200;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -256,7 +256,10 @@ int main(void)
         obj_shader.setInt("material.emissive_tex", 2);
         obj_shader.setFloat("material.shininess", 0.25f);
         light.use(obj_shader);
-        obj_shader.setVec3("light.position", glm::value_ptr(lightPos));
+        obj_shader.setVec3("light.position", glm::value_ptr(camera.Position));
+        obj_shader.setVec3("light.direction", glm::value_ptr(camera.Front));
+        obj_shader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
+        obj_shader.setFloat("light.outerCutoff", glm::cos(glm::radians(17.5f)));
         obj_shader.setFloat("light.constant", 1.0f);
         obj_shader.setFloat("light.linear", 0.09f);
         obj_shader.setFloat("light.quadratic", 0.032f);
