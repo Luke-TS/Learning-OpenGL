@@ -9,7 +9,7 @@ uniform mat4 projection;
 
 out vec3 Normal;
 out vec3 FragPos;
-out vec2 TexCoord;
+out vec2 TexCoords;
 
 void main()
 {
@@ -19,5 +19,5 @@ void main()
     FragPos = vec3(model * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(model))) * aNorm;
 
-    TexCoord = aTex;
+    TexCoords = aTex;
 }
