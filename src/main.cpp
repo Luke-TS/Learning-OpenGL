@@ -6,6 +6,7 @@
 
 // matrix library for OpenGL
 #include <bits/types/struct_timeval.h>
+#include <cstdlib>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
@@ -89,6 +90,18 @@ float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 };
 
+glm::vec3 cubePositions[] = {
+    glm::vec3( 0.0f,  0.0f,  0.0f), 
+    glm::vec3( 2.0f,  -5.0f, -15.0f), 
+    glm::vec3(-1.5f, 2.2f, -2.5f),  
+    glm::vec3(-3.8f, -2.0f, -12.3f),  
+    glm::vec3( 2.4f, 0.4f, -3.5f),  
+    glm::vec3(-1.7f,  3.0f, -7.5f),  
+    glm::vec3( 1.3f, 2.0f, -2.5f),  
+    glm::vec3( 1.5f,  -2.0f, -2.5f), 
+    glm::vec3( 1.5f,  0.2f, -1.5f), 
+    glm::vec3(-1.3f,  1.0f, -1.5f)  
+};
 
 glm::vec3 ambient = glm::vec3(0.24725f, 0.1995f,	0.0745f);
 glm::vec3 diffuse = glm::vec3(0.75164f, 0.60648f, 0.22648);
@@ -197,10 +210,19 @@ int main(void)
     emissive_tex.bind();
 
     float cube_rotation_theta = 0.0f;
+    glm::vec3 cube_axes[10];
+    for (auto& ax : cube_axes) {
+        float x = 2.0f * rand() / (float)RAND_MAX;
+        float y = 2.0f * rand() / (float)RAND_MAX;
+        float z = 2.0f * rand() / (float)RAND_MAX;
+
+        ax = glm::vec3(x,y,z);
+    }
+
     // render loop
     while (!glfwWindowShouldClose(window))
     {
-        // input
+        glfwPollEvents();
         processInput(window);
 
         // state-setting command
@@ -209,7 +231,7 @@ int main(void)
 
         float timeValue = glfwGetTime();
 
-        auto lightPos = glm::vec3(2.0, 1.5f, -2.5f);
+        auto lightPos = glm::vec3(2.0, 2.0f, -0.5f);
         auto lightColor = glm::vec3(1.0f);
 
         light.ambient = lightColor * 0.2f; 
@@ -219,33 +241,39 @@ int main(void)
         obj_shader.use();
         glBindVertexArray(VAO_0);
 
-        // vertex shader transformation matrices
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-        if (rotate) // update rotation theta
-            cube_rotation_theta += deltaTime;
-
-        model = glm::rotate(model, cube_rotation_theta, glm::normalize(glm::vec3(1.0f, 2.0f, 1.05f)));
-
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
-        // vertex uniforms
-        obj_shader.setMat4("model", glm::value_ptr(model));
+        // vertex shader uniforms
         obj_shader.setMat4("view", glm::value_ptr(view));
         obj_shader.setMat4("projection", glm::value_ptr(projection));
-        
+
         // fragment shader uniforms
-        obj_shader.setVec3("lightPos", glm::value_ptr(lightPos));
         obj_shader.setVec3("viewPos", glm::value_ptr(camera.Position));
         obj_shader.setInt("material.diffuse_tex", 0);
         obj_shader.setInt("material.specular_tex", 1);
         obj_shader.setInt("material.emissive_tex", 2);
         obj_shader.setFloat("material.shininess", 0.25f);
         light.use(obj_shader);
+        obj_shader.setVec3("light.position", glm::value_ptr(lightPos));
+        obj_shader.setFloat("light.constant", 1.0f);
+        obj_shader.setFloat("light.linear", 0.09f);
+        obj_shader.setFloat("light.quadratic", 0.032f);
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        if (rotate) // update rotation theta
+            cube_rotation_theta += deltaTime;
+
+        for (int i = 0; i < 10; ++i) {
+
+            // vertex shader transformation matrices
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            model = glm::rotate(model, cube_rotation_theta, glm::normalize(cube_axes[i]));
+            // vertex uniform
+            obj_shader.setMat4("model", glm::value_ptr(model));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // render lights
         light_shader.use();
@@ -268,7 +296,6 @@ int main(void)
 
         // check events and swap buffers
         glfwSwapBuffers(window);
-        glfwPollEvents();
 
         // update timing data
         float currentFrame = glfwGetTime();
