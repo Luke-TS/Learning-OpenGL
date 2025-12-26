@@ -12,12 +12,11 @@ find_package(OpenGL REQUIRED)
 find_package(assimp REQUIRED)
 
 add_library(glad glad/src/gl.c)
-target_include_directories(glad PUBLIC glad/include PRIVATE assimp::assimp)
+target_include_directories(glad PUBLIC glad/include)
 
 add_executable(gl_example
     src/main.cpp
     src/shader.cpp
-    src/texture.cpp
 )
 
 target_link_libraries(gl_example
@@ -26,6 +25,7 @@ target_link_libraries(gl_example
         glfw
         OpenGL::GL
         glm::glm
+        assimp::assimp
 )
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -33,4 +33,5 @@ set(CMAKE_BUILD_TYPE Debug)
 target_compile_definitions(gl_example PRIVATE
     TEXTURES="${PROJECT_SOURCE_DIR}/assets/textures"
     SHADERS="${PROJECT_SOURCE_DIR}/shaders"
+    MODELS="${PROJECT_SOURCE_DIR}/assets/models/"
 )

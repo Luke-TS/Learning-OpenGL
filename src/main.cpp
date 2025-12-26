@@ -21,8 +21,8 @@
 #include "material.h"
 #include "light.h"
 #include "shader.h"
-#include "texture.h"
 #include "camera.h"
+#include "model.h"
 
 #define STRINGIFY(x) #x
 #define ARRAY_SIZE(x) sizeof((x))/sizeof((x)[0])
@@ -94,25 +94,6 @@ float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 };
 
-glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f), 
-    glm::vec3( 2.0f,  -5.0f, -15.0f), 
-    glm::vec3(-1.5f, 2.2f, -2.5f),  
-    glm::vec3(-3.8f, -2.0f, -12.3f),  
-    glm::vec3( 2.4f, 0.4f, -3.5f),  
-    glm::vec3(-1.7f,  3.0f, -7.5f),  
-    glm::vec3( 1.3f, 2.0f, -2.5f),  
-    glm::vec3( 1.5f,  -2.0f, -2.5f), 
-    glm::vec3( 1.5f,  0.2f, -1.5f), 
-    glm::vec3(-1.3f,  1.0f, -1.5f)  
-};
-
-glm::vec3 ambient = glm::vec3(0.24725f, 0.1995f,	0.0745f);
-glm::vec3 diffuse = glm::vec3(0.75164f, 0.60648f, 0.22648);
-glm::vec3 specular = glm::vec3(0.628281f, 0.555802f, 0.366065f);
-
-Material cube_material{ambient, diffuse, specular, 0.4f};
-
 glm::vec3 pointLightPositions[] = {
 	glm::vec3( 0.7f,  0.2f,  2.0f),
 	glm::vec3( 2.3f, -3.3f, -4.0f),
@@ -174,9 +155,7 @@ int main(void)
     glGenVertexArrays(1, &VAO_0);
     // init buffers
     unsigned int VBO; // vertex buffer
-    unsigned int EBO; // element buffer
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
 
     // copy data
     glBindVertexArray(VAO_0);
@@ -207,25 +186,10 @@ int main(void)
     // visualize light source
     Shader light_shader("vertex.glsl", "light_fragment.glsl");
 
-    Texture diffuse_tex{"container2.jpg"};
-    Texture specular_tex{"container2_specular.jpg"};
-    Texture emissive_tex{"matrix.jpg"};
-    glActiveTexture(GL_TEXTURE0);
-    diffuse_tex.bind();
-    glActiveTexture(GL_TEXTURE1);
-    specular_tex.bind();
-    glActiveTexture(GL_TEXTURE2);
-    emissive_tex.bind();
+    std::string path = std::string(MODELS) + std::string("backpack/backpack.obj");
+    Model model(path.c_str());
 
     float cube_rotation_theta = 0.0f;
-    glm::vec3 cube_axes[10];
-    for (auto& ax : cube_axes) {
-        float x = 2.0f * rand() / (float)RAND_MAX;
-        float y = 2.0f * rand() / (float)RAND_MAX;
-        float z = 2.0f * rand() / (float)RAND_MAX;
-
-        ax = glm::vec3(x,y,z);
-    }
 
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -246,8 +210,10 @@ int main(void)
         auto diffuse = lightColor * 0.6f; 
         auto specular =  lightColor; 
 
+
         obj_shader.use();
         glBindVertexArray(VAO_0);
+        model.Draw(obj_shader);
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection;
@@ -316,20 +282,6 @@ int main(void)
         obj_shader.setFloat("spotLight.constant", 0.8f);
         obj_shader.setFloat("spotLight.linear", 0.05f);
         obj_shader.setFloat("spotLight.quadratic", 0.032f);
-
-        if (rotate) // update rotation theta
-            cube_rotation_theta += deltaTime;
-
-        for (int i = 0; i < 10; ++i) {
-
-            // vertex shader transformation matrices
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, cube_rotation_theta, glm::normalize(cube_axes[i]));
-            // vertex uniform
-            obj_shader.setMat4("model", glm::value_ptr(model));
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
 
         // render lights
         light_shader.use();
@@ -420,6 +372,4 @@ void processInput(GLFWwindow *window)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (key == GLFW_KEY_BACKSPACE && action == GLFW_PRESS)
-        rotate = !rotate;
 }
