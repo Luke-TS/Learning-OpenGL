@@ -34,7 +34,7 @@ private:
 
     void loadModel(string path) {
         Assimp::Importer import;
-        const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);	
+        const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate);	
 
         if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
         {
@@ -79,7 +79,7 @@ private:
             normal.z = mesh->mNormals[i].z; 
             vertex.Normal = normal;
 
-            if(mesh->mTextureCoords[0]) { // does the mesh contain texture coordinates?
+            if(mesh->mTextureCoords[0]) { // texture coords present?
                 glm::vec2 vec;
                 vec.x = mesh->mTextureCoords[0][i].x; 
                 vec.y = mesh->mTextureCoords[0][i].y;

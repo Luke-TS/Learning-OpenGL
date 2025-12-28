@@ -14,9 +14,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <cmath>
+#include <glm/trigonometric.hpp>
 #include <iostream>
-#include <random>
 
 #include "material.h"
 #include "light.h"
@@ -94,12 +93,6 @@ float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 };
 
-glm::vec3 pointLightPositions[] = {
-	glm::vec3( 0.7f,  0.2f,  2.0f),
-	glm::vec3( 2.3f, -3.3f, -4.0f),
-	glm::vec3(-4.0f,  2.0f, -12.0f),
-	glm::vec3( 0.0f,  0.0f, -3.0f)
-};  
 
 int main(void)
 {
@@ -181,13 +174,16 @@ int main(void)
     glEnableVertexAttribArray(0);
 
     // handles object positioning and lighting
-    Shader obj_shader("vertex.glsl", "obj_fragment.glsl");
+    //Shader obj_shader("vertex.glsl", "obj_fragment.glsl");
+    Shader model_shader("vertex.glsl", "mesh_fragment.glsl");
 
     // visualize light source
     Shader light_shader("vertex.glsl", "light_fragment.glsl");
 
-    std::string path = std::string(MODELS) + std::string("backpack/backpack.obj");
-    Model model(path.c_str());
+    std::string backpack_path = std::string(MODELS) + std::string("backpack/backpack.obj");
+    Model backpack_model(backpack_path.c_str());
+    std::string livingroom_path = std::string(MODELS) + std::string("Cottage_FREE.fbx");
+    Model livingroom_model(livingroom_path.c_str());
 
     float cube_rotation_theta = 0.0f;
 
@@ -201,89 +197,51 @@ int main(void)
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        float timeValue = glfwGetTime();
-
-        auto lightPos = glm::vec3(2.0, 2.0f, -0.5f);
-        auto lightColor = glm::vec3(1.0f);
-
-        auto ambient = lightColor * 0.2f; 
-        auto diffuse = lightColor * 0.6f; 
-        auto specular =  lightColor; 
-
-
-        obj_shader.use();
+        model_shader.use();
         glBindVertexArray(VAO_0);
-        model.Draw(obj_shader);
 
+        glm::mat4 model_mat = glm::mat4(1.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection;
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         // vertex shader uniforms
-        obj_shader.setMat4("view", glm::value_ptr(view));
-        obj_shader.setMat4("projection", glm::value_ptr(projection));
+        model_shader.setMat4("model", glm::value_ptr(model_mat));
+        model_shader.setMat4("view", glm::value_ptr(view));
+        model_shader.setMat4("projection", glm::value_ptr(projection));
 
         // fragment shader uniforms
-        obj_shader.setVec3("viewPos", glm::value_ptr(camera.Position));
-        obj_shader.setInt("material.diffuse_tex", 0);
-        obj_shader.setInt("material.specular_tex", 1);
-        obj_shader.setInt("material.emissive_tex", 2);
-        obj_shader.setFloat("material.shininess", 0.25f);
+        model_shader.setVec3("spotLight.position", glm::value_ptr(camera.Position));
+        model_shader.setVec3("spotLight.direction", glm::value_ptr(camera.Front));
 
-        for( int i = 0; i < ARRAY_SIZE(pointLightPositions); ++i) {
-            std::string index = std::to_string(i);
+        model_shader.setVec3("spotLight.ambient", 1.0f, 1.0f, 1.0f);
+        model_shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+        model_shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+        model_shader.setFloat("spotLight.cutOff", glm::radians(12.5f));
+        model_shader.setFloat("spotLight.outerCutOff", glm::radians(17.5f));
+        model_shader.setFloat("spotLight.constant", 1.0f);
+        model_shader.setFloat("spotLight.linear", 0.08f);
+        model_shader.setFloat("spotLight.quadratic", 0.032f);
 
-            obj_shader.setVec3(
-                "pointLights[" + index + "].position",
-                glm::value_ptr(pointLightPositions[i])
-            );
+        auto lightPos = glm::vec3(0.0f);
+        float time = glfwGetTime();
+        float radius = 3.0f;
+        lightPos.x = cos(time) * radius;  
+        lightPos.z = sin(time) * radius;  
+        lightPos.y = sin(time) * 1.5f;
 
-            obj_shader.setVec3(
-                "pointLights[" + index + "].ambient",
-                glm::value_ptr(ambient)
-            );
+        model_shader.setVec3("pointLights[0].position", glm::value_ptr(lightPos));
+        model_shader.setVec3("pointLights[0].ambient", 1.0f, 1.0f, 1.0f);
+        model_shader.setVec3("pointLights[0].diffuse", 1.0f, 1.0f, 1.0f);
+        model_shader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
 
-            obj_shader.setVec3(
-                "pointLights[" + index + "].diffuse",
-                glm::value_ptr(diffuse)
-            );
+        model_shader.setFloat("pointLights[0].constant", 1.0f);
+        model_shader.setFloat("pointLights[0].linear", 0.08f);
+        model_shader.setFloat("pointLights[0].quadratic", 0.032f);
 
-            obj_shader.setVec3(
-                "pointLights[" + index + "].specular",
-                glm::value_ptr(specular)
-            );
+        livingroom_model.Draw(model_shader);
 
-            obj_shader.setFloat(
-                "pointLights[" + index + "].constant",
-                0.8f
-            );
-
-            obj_shader.setFloat(
-                "pointLights[" + index + "].linear",
-                0.05f
-            );
-
-            obj_shader.setFloat(
-                "pointLights[" + index + "].quadratic",
-                0.032f
-            );
-        }
-
-        obj_shader.setVec3("spotLight.direction", glm::value_ptr(camera.Front));
-        obj_shader.setVec3("spotLight.position", glm::value_ptr(camera.Position));
-        obj_shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-        obj_shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
-        // light colors
-        obj_shader.setVec3("spotLight.ambient", glm::value_ptr(ambient));
-        obj_shader.setVec3("spotLight.diffuse", glm::value_ptr(diffuse));
-        obj_shader.setVec3("spotLight.specular", glm::value_ptr(specular));
-
-        // light attenuation
-        obj_shader.setFloat("spotLight.constant", 0.8f);
-        obj_shader.setFloat("spotLight.linear", 0.05f);
-        obj_shader.setFloat("spotLight.quadratic", 0.032f);
-
-        // render lights
+        // draw light sources
         light_shader.use();
         glBindVertexArray(lightVAO);
 
@@ -291,19 +249,17 @@ int main(void)
         light_shader.setMat4("projection", glm::value_ptr(projection));
 
         // light fragment shader
-        light_shader.setVec3("lightColor", glm::value_ptr(lightColor));
+        light_shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
         // different model matrix
-        for( const auto& pos : pointLightPositions ) {
-            glm::mat4 light_model = glm::mat4(1.0f);
-            light_model = glm::translate(light_model, pos);
-            light_model = glm::scale(light_model, glm::vec3(0.5f, 0.5f, 0.5f));
+        glm::mat4 light_model = glm::mat4(1.0f);
+        light_model = glm::translate(light_model, lightPos);
+        light_model = glm::scale(light_model, glm::vec3(0.5f, 0.5f, 0.5f));
 
-            // vertex shader uniforms
-            light_shader.setMat4("model", glm::value_ptr(light_model));
+        // vertex shader uniforms
+        light_shader.setMat4("model", glm::value_ptr(light_model));
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // check events and swap buffers
         glfwSwapBuffers(window);
