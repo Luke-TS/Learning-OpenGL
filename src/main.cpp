@@ -182,8 +182,8 @@ int main(void)
 
     std::string backpack_path = std::string(MODELS) + std::string("backpack/backpack.obj");
     Model backpack_model(backpack_path.c_str());
-    std::string livingroom_path = std::string(MODELS) + std::string("Cottage_FREE.fbx");
-    Model livingroom_model(livingroom_path.c_str());
+    //std::string livingroom_path = std::string(MODELS) + std::string("Cottage_FREE.fbx");
+    //Model livingroom_model(livingroom_path.c_str());
 
     float cube_rotation_theta = 0.0f;
 
@@ -217,8 +217,8 @@ int main(void)
         model_shader.setVec3("spotLight.ambient", 1.0f, 1.0f, 1.0f);
         model_shader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
         model_shader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        model_shader.setFloat("spotLight.cutOff", glm::radians(12.5f));
-        model_shader.setFloat("spotLight.outerCutOff", glm::radians(17.5f));
+        model_shader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+        model_shader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
         model_shader.setFloat("spotLight.constant", 1.0f);
         model_shader.setFloat("spotLight.linear", 0.08f);
         model_shader.setFloat("spotLight.quadratic", 0.032f);
@@ -239,7 +239,8 @@ int main(void)
         model_shader.setFloat("pointLights[0].linear", 0.08f);
         model_shader.setFloat("pointLights[0].quadratic", 0.032f);
 
-        livingroom_model.Draw(model_shader);
+        //livingroom_model.Draw(model_shader);
+        backpack_model.Draw(model_shader);
 
         // draw light sources
         light_shader.use();
